@@ -19,7 +19,7 @@ mongoose.connect(
 //import routes
 const exployeeRoutes = require("./routes/employeeRoute")
 app.use("/api/sign-in",exployeeRoutes)
-app.use("/api/sign-up",exployeeRoutes)
+app.use("/",exployeeRoutes)
 
 
 app.listen(3000,() => {
