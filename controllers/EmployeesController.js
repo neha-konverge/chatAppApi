@@ -72,7 +72,7 @@ const signUp = async(req,res) => {
             
         }
     }catch(error){
-        res.json({message:error})
+        res.json({message:error.toString()})
     }
 }
 

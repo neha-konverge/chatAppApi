@@ -2,7 +2,8 @@ const express = require('express')
 const dotenv = require('dotenv')
 const mongoose = require('mongoose')
 const app = express()
-const dbUrl = 'mongodb://127.0.0.1:27017/chatApiDb'
+// const dbUrl = 'mongodb://127.0.0.1:27017/chatApiDb'
+const dbUrl = 'mongodb://chatApiDb:chatApiDb@ac-dq8turv-shard-00-00.uqzisjl.mongodb.net:27017,ac-dq8turv-shard-00-01.uqzisjl.mongodb.net:27017,ac-dq8turv-shard-00-02.uqzisjl.mongodb.net:27017/konchat?ssl=true&replicaSet=atlas-tp7t9j-shard-0&authSource=admin&retryWrites=true&w=majority'
 dotenv.config();
 app.use(express.json())
 mongoose.connect(
