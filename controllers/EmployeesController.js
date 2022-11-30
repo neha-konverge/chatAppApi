@@ -72,7 +72,7 @@ const signUp = async(req,res) => {
             
         }
     }catch(error){
-        res.json({message:error})
+        res.json({message:error.toString()})
     }
 }
 
@@ -87,8 +87,17 @@ const checkEmpty = (data) => {
         return {status:1}
     }
 }
+
+const testGet = (req,res) => {
+    try{
+        res.json("API called successfully")
+    }catch(error){
+        res.json({msg : error.toString()})
+    }
+}
 module.exports = {
     employeeExist,
     signIn,
-    signUp
+    signUp,
+    testGet
 }
