@@ -1,13 +1,14 @@
 const express = require('express')
 const dotenv = require('dotenv')
 const mongoose = require('mongoose')
-const app = express()
-const dbUrl = 'mongodb://127.0.0.1:27017/chatApiDb'
+const app = express();
+const db = process.env.DB_CONNECT;
+const dbUrl =8080;
+//  'mongodb://localhost:27017/chatApiDb' process.env.PORT || 
 dotenv.config();
 app.use(express.json())
 mongoose.connect(
-    dbUrl,
-    // process.env.DB_CONNECT,
+    process.env.DB_CONNECT,
     {
         useUnifiedTopology: true,
         useNewUrlParser: true
@@ -17,10 +18,11 @@ mongoose.connect(
 
 //import routes
 const exployeeRoutes = require("./routes/employeeRoute")
-app.use("/api/sign-in",exployeeRoutes)
-app.use("/api/sign-up",exployeeRoutes)
+app.use("/api/logged",exployeeRoutes)
+app.use("/api/user",exployeeRoutes)
+app.use("/api/user-reset",exployeeRoutes)
 
 
-app.listen(3000,() => {
-    console.log("server up and running on port 3000")
+app.listen(dbUrl,() => {
+    console.log("server up and running on port ",dbUrl);
 })
