@@ -5,7 +5,7 @@ const ngrok = require("ngrok");
 const nodemon = require("nodemon");
 const app = express();
 const db = process.env.DB_CONNECT;
-const dbUrl = 3000;
+const port = 8000;
 //  'mongodb://localhost:27017/chatApiDb' process.env.PORT || 
 dotenv.config();
 app.use(express.json())
@@ -20,11 +20,11 @@ mongoose.connect(
 
 ngrok.connect({
     proto: "http",
-    addr: "3000",
+    addr: port,
 })
     .then(url => {
         console.log(`ngrok tunnel opened at: ${url}`);
-        console.log("Open the ngrok dashboard at: https://localhost:3000\n");
+        console.log("Open the ngrok dashboard at: https://localhost:"+port+"\n");
 
         nodemon({
             script: "./bin/www",
@@ -33,12 +33,14 @@ ngrok.connect({
     })
 
 //import routes
-const exployeeRoutes = require("./routes/employeeRoute")
-app.use("/api/logged", exployeeRoutes)
-app.use("/api/user", exployeeRoutes)
-app.use("/api/user-reset", exployeeRoutes)
+const employeeRoutes = require("./routes/employeeRoute")
+// app.use("/api/logged", employeeRoutes)
+app.use("/api/user", employeeRoutes)
+// app.use("/api/forgot", employeeRoutes)
+// app.use("/api/passCheck", employeeRoutes)
+// app.use("/api/user", employeeRoutes)
 
 
-app.listen(dbUrl, () => {
-    console.log("server up and running on port ", dbUrl);
+app.listen(8000, () => {
+    console.log("server up and running on port ", 8000);
 })

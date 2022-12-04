@@ -1,25 +1,46 @@
 const EmployeesModel = require("../models/Employees")
 const bcrypt = require("bcrypt")
-const nodemailer = require("nodemailer");
-const { v4: uuidv4 } = require("uuid")
+const {sendMail} = require('./common');
+const { use } = require("../routes/employeeRoute");
+// const { v4: uuidv4 } = require("uuid")
 
-const employeeExist = async (req, res) => {
+const employeeExist = (email) => {
     try {
-        const employee = await EmployeesModel.find()
-        res.json(employee)
-        // EmployeesModel.find({}).then((result) => {
-        //     console.log(result)
-        //     res.json({data:result,name:"neha"})
-        // }).catch((error) => console.log(error))
+        const employee = EmployeesModel.findOne({ email: email });
+        if(employee){
+            return 1;
+        }else{
+            return 0;
+        }
     } catch (error) {
-        res.json({ messege: error })
+       return 0
     }
 }
 
+const forgotPassword = async (req, res) => {
+    try{
+        if('email' in req.body === false || req.body.email === ''){
+            res.send({ message: "Please enter valid email",status:0 });
+        }else{
+            const checkExist = await EmployeesModel.findOne({ email: req.body.email });
+            if(checkExist){
+                const hashPassword =  await bcrypt.hash(req.body.email.toString(), 10);
+                // bcrypt.compare(params.email,hashPassword).then((res)=>console.log(hashPassword,res))
+                // console.log({status:1,resetPassLink:'https://personal-h1klr039.outsystemscloud.com/KonChat/resetPassword?check='+checkExist.id+'&hash='+hashPassword})
+                // const mailSent = sendMail({id:checkExist.id,email:req.body.email})
+                // res.send(mailSent)
+                res.send({status:1,message:"",resetPassLink:'https://personal-h1klr039.outsystemscloud.com/KonChat/resetPassword?check='+checkExist.id+'&hash='+hashPassword,reemail:req.body.email,checkExist:checkExist.email})
+            }else{
+                res.send({ message: "Email does not exist in our database",status:0 });
+            }
+        }
+    }catch(error){
+        res.json({ messege: error })
+    }
+    
 
 
 
-const sendEmail = async (req, res) => {
     // let date = new Date();
     // day = date.getDate();
     // month = date.getMonth();
@@ -85,6 +106,43 @@ const sendEmail = async (req, res) => {
     // }
 }
 
+const resetPassword = async(req,res) => {
+    try{
+        const user = await EmployeesModel.findOne({ _id: req.body.check });
+
+        if(!user || await bcrypt.compare(user.email,req.body.hash) === false){
+
+            res.send({ status: 0, message: 'Invalid user is trying to reset password' })
+
+        }else if ('password' in req.body === false || 'confirm_password' in req.body === false || req.body.password != req.body.confirm_password) {
+
+            res.send({ status: 0, message: 'Please enter valid password in both password and confirm password field' })
+
+        }else{
+
+            const update = await EmployeesModel.updateOne({_id:req.body.check},{$set:{password:await bcrypt.hash(req.body.password, 10)}})
+            res.send({status:await bcrypt.hash(req.body.password, 10),message:'Password has been reset successfully, please login with new password'})
+
+        }
+    }catch(error){
+        res.send({message:error.toString()})
+    }
+}
+
+const checkResetPasswordRequest = async(req,res) => {
+    try{
+        const user = await EmployeesModel.findOne({ _id: req.query.check });
+
+        if(!user || await bcrypt.compare(user.email,req.query.hash) === false){
+            res.send({ status: 0, message: 'Invalid user is trying to reset password' })
+        }else{
+            res.send({ status: 1, message: 'User verified successfully' })
+        }
+
+    }catch(error){
+        res.send({message:error})
+    }
+}
 
 {/*
  try {
@@ -112,25 +170,24 @@ const sendEmail = async (req, res) => {
 
 const signIn = async (req, res) => {
     try {
-        // const { error } = validate(req.body);
-        // if (error)
-        //     return res.status(400).send({ message: error.details[0].message });
-
-        const user = await EmployeesModel.findOne({ email: req.body.email });
-        if (!user)
-            return res.status(401).send({ message: "Invalid Email or Password" });
-
+        const user = await EmployeesModel.findOne({ email: req.body.email});
         const validPassword = await bcrypt.compare(
             req.body.password,
-            user.password
+            user?user.password:''
         );
-        if (!validPassword)
-            return res.status(401).send({ message: "Invalid Email or Password" });
+        if ('email' in req.body === false || req.body.email.length < 13 || req.body.email.includes('konverge.ai') === false) {
+            return { status: 0, msg: 'Please enter valid email' }
+        } else if ('password' in req.body === false) {
+            return { status: 0, msg: 'Please enter password' }
+        }else if (!user || validPassword === false){
+            res.json({ message: "Invalid Email or Password",status:0 });
+        }else{
+            const token = user.generateAuthToken();
+            res.status(200).json({ data:user, message: "logged in successfully",status:1 });
+        }
 
-        const token = user.generateAuthToken();
-        res.status(200).send({ data: token, message: "logged in successfully" });
     } catch (error) {
-        res.status(500).send({ message: "Internal Server Error" });
+        res.status(500).json({ message: error.toString(),status:0 });
     }
 }
 
@@ -216,9 +273,13 @@ const checkEmpty = (data) => {
     }
 }
 
+const checkEmailPattern = (email) => {}
+
 module.exports = {
     employeeExist,
     signIn,
     signUp,
-    sendEmail
+    forgotPassword,
+    resetPassword,
+    checkResetPasswordRequest
 }
