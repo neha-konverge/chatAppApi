@@ -20,69 +20,39 @@ const employeeExist = async (req, res) => {
 
 
 const sendEmail = async (req, res) => {
-    // let date = new Date();
-    // day = date.getDate();
-    // month = date.getMonth();
-    // year = date.getFullYear();
-    // if (date.getHours() < 12) {
-    //     time = (12 - date.getHours()) + '/' + date.getMinutes() + '//' + date.getMilliseconds();
-    // }else{
-    //     time = (date.getHours() - 12) + '/' + date.getMinutes() + '//' + date.getTimezoneOffset();
-    // }
+    try {
+        const employee = await EmployeesModel.findOne({ email: req.body.email });
+        console.log("emp:",employee)
+        if (employee) {
+            console.log('hello')
+            try {
+                var transporter = nodemailer.createTransport({
+                    host: "smtp.gmail.com",
+                    port: 587,
+                    auth: {
+                      user: "prattyancha26@gmail.com",
+                      pass: "pdzqfsanbiqwaogb"
+                    }
+                  });
+
+                const mailOptions = {
+                    from: 'prattyancha26@gmail.com',
+                    to:`${employee.email}`,
+                    subject: 'reset password',
+                    text: `<p>scdc</p>`
+                };
+                console.log("DATA =>", mailOptions);
+                let info  = await transporter.sendMail(mailOptions);
+                res.json(info)
+            } catch (error) {
+                res.json({ messege: error })
+            }
+        }
 
 
-    // console.log("DaY =>", time,'--',time + 3600000)
-    // try {
-    //     const employee = await EmployeesModel.findOne({ email: req.body.email });
-    //     // res.json(employee);
-    //     if (employee) {
-    //         try {
-    //             const otp = `${Math.floor(1000 + Math.random() * 9000)}`
-
-    //             const transporter = nodemailer.createTransport({
-    //                 service: 'gmail',
-    //                 host:'smtp.gmail.com',
-    //                 port : 587,
-    //                 auth: {
-    //                     user: 'prattyancha.patharkar@konverge.ai',
-    //                     pass: 'prattyancha2601',
-    //                 }
-    //             });
-
-    //             console.log("env :",process.env.AUTH_EMAIL);
-
-    //             const mailOptions = {
-    //                 from: 'prattyancha.patharkar@konverge.ai',
-    //                 to: 'neha.sawarkar@konverge.ai',
-    //                 subject: 'reset password',
-    //                 html: `<p>${otp}</p>`
-    //             };
-
-    //             const saveEmployee = new EmployeesModel({
-    //                 name: employee.name,
-    //                 email: employee.email,
-    //                 password: employee.password,
-    //                 mobile: employee.mobile,
-    //                 designation: employee.designation,
-    //                 status: employee.status,
-    //                 created: true,
-    //                 code: otp,
-    //                 expireIn: Date.now() + 3600000,
-    //                 createdAt: Date.now()
-    //             });
-    //             const data = await saveEmployee.save();
-    //             let mail = await transporter.sendMail(mailOptions);
-    //             console.log("DATA =>", mail);
-    //             res.json(data)
-    //         } catch (error) {
-    //             res.json({ messege: error })
-    //         }
-    //     }
-
-
-    // } catch (error) {
-    //     res.json({ messege: error })
-    // }
+    } catch (error) {
+        res.json({ messege: error })
+    }
 }
 
 
