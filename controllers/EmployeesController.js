@@ -176,9 +176,9 @@ const signIn = async (req, res) => {
             user?user.password:''
         );
         if ('email' in req.body === false || req.body.email.length < 13 || req.body.email.includes('konverge.ai') === false) {
-            return { status: 0, msg: 'Please enter valid email' }
+            return { status: 0, message: 'Please enter valid email' }
         } else if ('password' in req.body === false) {
-            return { status: 0, msg: 'Please enter password' }
+            return { status: 0, message: 'Please enter password' }
         }else if (!user || validPassword === false){
             res.json({ message: "Invalid Email or Password",status:0 });
         }else{
