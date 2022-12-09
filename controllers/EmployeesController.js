@@ -48,7 +48,7 @@ const forgotPassword = async (req, res) => {
                     });
 
                     const mailOptions = {
-                        from: 'prattyancha26@gmail.com',
+                        from: 'prattyancha.patharkar@konverge.ai',
                         to:  `${checkExist.email}`,
                         subject: 'Reset Your KonChat password',
                         html: `
@@ -74,7 +74,10 @@ const forgotPassword = async (req, res) => {
                         </head>
 
                         <body>
-                        <p class="main-content">Hello ${checkExist.name} we have received a request to set a new password for this account</p>
+                        <p class="main-content"><b></b>Hello ${checkExist.name},<br/>
+                         we have received a request to set a new password for this account.
+                         <br/>${checkExist.email}</p>
+
                         <button class="btn"> 
                         <a class="link" href=${userDetails.resetPassLink}>Reset Password</a>
                         </button>
@@ -104,19 +107,21 @@ const forgotPassword = async (req, res) => {
 const resetPassword = async (req, res) => {
     try {
         const user = await EmployeesModel.findOne({ _id: req.body.check });
+        console.log('user:', user);
 
-        if (!user || await bcrypt.compare(user.email, req.body.hash) === false) {
+        if (!user || bcrypt.compare(user.email, req.body.hash) === false) {
 
             res.send({ status: 0, message: 'Invalid user is trying to reset password' })
 
-        } else if ('password' in req.body === false || 'confirm_password' in req.body === false|| (req.body.password.length >= 8 && req.body.password.length <= 16 )  || req.body.password != req.body.confirm_password) {
+        } else if ('password' in req.body === false || 'confirm_password' in req.body === false||
+        req.body.password.length <= 0 || req.body.password.length >= 8 || req.body.password != req.body.confirm_password) {
 
             res.send({ status: 0, message: 'Please enter valid password in both password and confirm password field' })
 
         } else {
 
             const update = await EmployeesModel.updateOne({ _id: req.body.check }, { $set: { password: await bcrypt.hash(req.body.password, 10) } })
-            res.send({ status: await bcrypt.hash(req.body.password, 10), message: 'Password has been reset successfully, please login with new password' })
+            res.send({ status: 1, message: 'Password has been reset successfully, please login with new password' })
 
         }
     } catch (error) {
@@ -154,7 +159,7 @@ const signIn = async (req, res) => {
         } else if (!user || validPassword === false) {
             res.json({ message: "Invalid Email or Password", status: 0 });
         } else {
-            const token = user.generateAuthToken();
+            // const token = user.generateAuthToken();
             res.status(200).json({ data: user, message: "logged in successfully", status: 1 });
         }
 
@@ -215,7 +220,7 @@ const checkEmpty = (data) => {
         return { status: 0, msg: 'Please enter valid name' }
     } else if ('email' in data === false || data.email.length < 13 || data.email.includes('\t') || data.email.includes(' ')  || data.email.includes('konverge.ai') === false) {
         return { status: 0, msg: 'Please enter valid email' }
-    } else if ('password' in data === false || 'confirm_password' in data === false || data.password.length <= 8 || data.password.length >= 16  || data.password != data.confirm_password) {
+    } else if ('password' in data === false || 'confirm_password' in data === false || data.password.length <= 0 || data.password.length >= 8  || data.password != data.confirm_password) {
         return { status: 0, msg: 'Please enter valid password in both password and confirm password field' }
     } else {
         return { status: 1 }
