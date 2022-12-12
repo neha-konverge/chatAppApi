@@ -1,32 +1,66 @@
 const nodemailer = require("nodemailer");
 const bcrypt = require("bcrypt")
 const sendMail = (params) => {
-    // const transporter = nodemailer.createTransport({
-    //                     service: 'gmail',
-    //                     host:'smtp.gmail.com',
-    //                     port : 587,
-    //                     auth: {
-    //                         user: 'sawarkar.ns27@gmail.com',
-    //                         pass: 'nehasawarkar@1996',
-    //                     }
-    //                 });
-    
-    // const mailOptions = {
-    //     from: 'sawarkar.ns27@gmail.com',
-    //     to: 'neha.sawarkar@konverge.ai',
-    //     subject: 'reset password',
-    //     html: `<p>dsjsdgdhjdsjdsjkksdjkdjs</p>`
-    // };
-    // let mail = await transporter.sendMail(mailOptions);
-   
-    // const salt =  bcrypt.genSalt(Number(process.env.SALT));
-    const hashPassword =  bcrypt.hash(params.email.toString(), 10);
-    // bcrypt.compare(params.email,hashPassword).then((res)=>console.log(hashPassword,res))
-    console.log({status:1,resetPassLink:'https://personal-h1klr039.outsystemscloud.com/KonChat/resetPassword?check='+params.id+'&hash='+hashPassword})
-    return {status:1,message:"",resetPassLink:'https://personal-h1klr039.outsystemscloud.com/KonChat/resetPassword?check='+params.id+'&hash='+hashPassword}
-    
+    try{
+        var transporter = nodemailer.createTransport({
+            host: "smtp.gmail.com",
+            port: 587,
+            auth: {
+                user: "prattyancha26@gmail.com",
+                pass: "kywxwinhygabkajr"
+            }
+        });
+        const mailOptions = {
+            from: 'prattyancha.patharkar@konverge.ai',
+            to:  params.to_email,
+            subject: params.subject,
+            html: params.html
+        }
+        const mailStatus =  transporter.sendMail(mailOptions);
+        return mailStatus
+    }catch(error){
+        return error.toString()
+    }
+}
+
+const verifyEmailTemplate = (params) => {
+    return `
+        <!DOCTYPE html>
+        <html>
+        <head>
+        <style>
+        body {background-color: powderblue;}
+        .main-content{color: black;}
+        .link    {
+            text-decoration-line: none;
+            font-size : 20px;
+            color : white !important;
+        }
+        .btn {
+            height: 40px;
+            background-color: orange;
+            border-radius: 58px;
+            border: 1px solid orange;
+            width: 200px;
+        }
+        </style>
+        </head>
+        <body>
+        <p class="main-content"><b></b>Hello ${params.name},<br/>
+            Your account is created.
+            <br/>
+            Please click on below button to verify your email and activate account
+        </p>
+        <button class="btn"> 
+        <a class="link" href=${params.verify_email}>Click here</a>
+        </button>
+        <p>If you didn’t make this request, ignore this email.</p>
+        </body>
+        </html>
+    `;
 }
 
 module.exports = {
-    sendMail
+    sendMail,
+    verifyEmailTemplate
 }

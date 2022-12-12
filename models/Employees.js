@@ -7,7 +7,7 @@ const employeesSchema = new mongoose.Schema({
     password: String,
     mobile: String,
     designation: String,
-    status: String,
+    status: Boolean,
     created: String,
     code:String,
     expireIn:Date,

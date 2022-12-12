@@ -34,12 +34,8 @@ ngrok.connect({
 
 //import routes
 const employeeRoutes = require("./routes/employeeRoute")
-// app.use("/api/logged", employeeRoutes)
-app.use("/api/user", employeeRoutes)
-// app.use("/api/forgot", employeeRoutes)
-// app.use("/api/passCheck", employeeRoutes)
-// app.use("/api/user", employeeRoutes)
 
+app.use("/api/user", employeeRoutes)
 
 app.listen(8000, () => {
     console.log("server up and running on port ", 8000);
