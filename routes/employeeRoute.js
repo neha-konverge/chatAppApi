@@ -8,6 +8,7 @@ router.post("/resetPassword",EmployeesController.resetPassword)
 router.post("/verifyEmail",EmployeesController.verifyEmail)
 router.post("/sendVerificationEmail",EmployeesController.sendVerificationEmail)
 router.post("/chatuser",EmployeesController.getRecord);
+router.get("/verifyToken",EmployeesController.verifyToken);
 // router.get()
 // router.put()
 // router.delete()
