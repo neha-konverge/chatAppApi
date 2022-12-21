@@ -11,7 +11,7 @@ const sendMail = (params) => {
             }
         });
         const mailOptions = {
-            from: 'prattyancha.patharkar@konverge.ai',
+            from: 'konchat@konverge.ai',
             to:  params.to_email,
             subject: params.subject,
             html: params.html

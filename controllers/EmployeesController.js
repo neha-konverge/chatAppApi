@@ -1,11 +1,12 @@
 const EmployeesModel = require("../models/Employees")
+const TempEmployeesModel = require("../models/TempEmployees")
 const bcrypt = require("bcrypt")
 const { sendMail, verifyEmailTemplate } = require('./common');
 const { use } = require("../routes/employeeRoute");
 var nodemailer = require('nodemailer');
 const { response } = require("express");
-// var emailStyle = require('./emailTemplate.css');
-// const { v4: uuidv4 } = require("uuid")
+const jwt = require("jsonwebtoken")
+const { isJwtExpired } = require('jwt-check-expiration');
 
 const passwordRegex = /^[a-zA-Z0-9!@#\$%\^\&*\)\(+=._-]+$/g
 let signedIn = {};
@@ -28,20 +29,17 @@ const employeeExist = (email) => {
 const getRecord = async (req, res) => {
     let user_details = [];
     try {
-        const userData = await EmployeesModel.find({'email': {$ne: req.body.email }});
-        console.log('req=>', userData)
+        const userData = await EmployeesModel.find({'email': {$ne: req.body.email }, status: true});        
         if (userData) {
             userData.map((users, key) => {
-                    if (users.status === true) {
-                        user_details.push(users);
-                    }
+                if (users.status === true) {
+                    user_details.push(users);
+                }
             })
-            console.log("res ====:",user_details)
             res.send(userData);
         }
-
     } catch (error) {
-        console.log('error:', error);
+        res.json({ messege: error.toString() })
     }
 }
 
@@ -51,15 +49,25 @@ const forgotPassword = async (req, res) => {
             res.send({ message: "Please enter valid email", status: 0 });
         } else {
             const checkExist = await EmployeesModel.findOne({ email: req.body.email });
-            if (checkExist) {
+            const emailExistInTemp = await TempEmployeesModel.findOne({ email: req.body.email });
+            if (!emailExistInTemp && !checkExist) {
+                res.send({ message: "Email does not exist in our database", status: 0 });
+            }else if(emailExistInTemp && !checkExist) {
+                res.send({ message: "This email is registered but verification is pending", status: 0 });
+            }else {
                 const hashPassword = await bcrypt.hash(req.body.email.toString(), 10);
                 let userDetails = {
                     status: 1,
                     message: "Reset password link has been sent to you email",
-                    resetPassLink: process.env.WEBSITE_LINK + 'resetPassword?check=' + checkExist.id + '&hash=' + hashPassword
                 }
-
                 try {
+                    const token = jwt.sign({
+                        exp: Math.floor(Date.now() / 1000) + (1 * 60),
+                        data: req.body.email
+                    }, 'secretKey');
+
+                    userDetails.resetPassLink= process.env.WEBSITE_LINK + 'resetPassword?token='+token+'&check=' + checkExist.id + '&hash=' + hashPassword
+
                     var transporter = nodemailer.createTransport({
                         host: "smtp.gmail.com",
                         port: 587,
@@ -114,12 +122,22 @@ const forgotPassword = async (req, res) => {
                     let info = await transporter.sendMail(mailOptions);
                     // res.json(info)
                 } catch (error) {
-                    console.log({ messege: error })
+                    res.json({ messege: error.toString() })
                 }
                 res.send(userDetails)
-            } else {
-                res.send({ message: "Email does not exist in our database", status: 0 });
             }
+        }
+    } catch (error) {
+        res.json({ messege: error.toString() })
+    }
+}
+
+const verifyToken = (req,res) => {
+    try{
+        if(isJwtExpired(req.query.token) === true){
+            res.send({ message: "This link has been expired, please try again", status: 0 });
+        }else{
+            res.send({ message: "Verifed successfully", status: 1 });
         }
     } catch (error) {
         res.json({ messege: error.toString() })
@@ -129,12 +147,17 @@ const forgotPassword = async (req, res) => {
 const resetPassword = async (req, res) => {
     try {
         const user = await EmployeesModel.findOne({ _id: req.body.check });
-        console.log('user:', req.body.password);
-        console.log('confirmuser:', req.body.confirm_password);
+        const emailExistInTemp = await TempEmployeesModel.findOne({ _id: req.body.check });
 
-        if (!user || bcrypt.compare(user.email, req.body.hash) === false) {
+        if (!emailExistInTemp && !user) {
+            res.send({ status: 0, message: 'Email does not exist in our database'})
+        }else if (emailExistInTemp && !user) {
+            res.send({ status: 0, message: 'This email is already registered but verification is pending' })
+        }else if (!user || bcrypt.compare(user.email, req.body.hash) === false) {
             res.send({ status: 0, message: 'Invalid user is trying to reset password' })
-        } else if ('password' in req.body === false || passwordRegex.test(req.body.password) === false || req.body.password.length <= 0 || req.body.password.length > 8) {
+        } else if ('password' in req.body === false 
+        //|| passwordRegex.test(req.body.password) === false 
+        || req.body.password.length <= 0 || req.body.password.length > 8) {
             res.send({ status: 0, message: 'Please enter valid password' })
         } else if ('confirm_password' in req.body === false || req.body.password != req.body.confirm_password) {
             res.send({ status: 0, message: 'Password and confirm password should be same' })
@@ -165,8 +188,9 @@ const checkResetPasswordRequest = async (req, res) => {
 
 const signIn = async (req, res) => {
     try {
+        const userTemp = await TempEmployeesModel.findOne({ email: req.body.email });
         const user = await EmployeesModel.findOne({ email: req.body.email });
-        const userActive = await EmployeesModel.findOne({ email: req.body.email, status: true });
+        // const userActive = await EmployeesModel.findOne({ email: req.body.email, status: true });
         const validPassword = await bcrypt.compare(
             req.body.password,
             user ? user.password : ''
@@ -175,11 +199,11 @@ const signIn = async (req, res) => {
             return { status: 0, message: 'Please enter valid email', activated: 0 }
         } else if ('password' in req.body === false) {
             return { status: 0, message: 'Please enter password', activated: 0 }
-        } else if (!user) {
+        } else if (!userTemp && !user) {
             res.json({ message: "Email id does not exist in our database", status: 0, activated: 0 });
-        } else if (!userActive) {
+        } else if (userTemp && !user) {
             res.json({ message: "Your account is not activated, please verify your email id to activate", activated: 0, status: 1 });
-        } else if (!userActive || validPassword === false) {
+        } else if (!user || validPassword === false) {
             res.json({ message: "Invalid Email or Password", status: 0, activated: 0 });
         } else {
             res.status(200).json({ data: user, message: "logged in successfully", status: 1, activated: 1 });
@@ -191,13 +215,30 @@ const signIn = async (req, res) => {
 
 const verifyEmail = async (req, res) => {
     try {
+        const emailExistInTemp = await TempEmployeesModel.findOne({ email: req.body.email });
         const emailExist = await EmployeesModel.findOne({ email: req.body.email });
-        if (!emailExist) {
+        // if(isJwtExpired(req.body.token) === true){
+        //     const token = jwt.sign({
+        //         exp: Math.floor(Date.now() / 1000) + (1 * 60),
+        //         data: req.body.email
+        //     }, 'secretKey');
+        //     process.env.WEBSITE_LINK + 'accountActivation?token='+token+'&check=' + req.body.email
+        //     res.json({ message: "This link has been expired. To verify your email<a href>click here</a>", status: 0 });
+        // }else 
+        if (!emailExistInTemp) {
             res.json({ message: "Invalid user is trying to verify email", status: 0 });
-        } else if (emailExist && emailExist.status === true) {
+        } else if (emailExist) {
             res.json({ message: "This email verification is already done", status: 0 });
         } else {
-            await EmployeesModel.updateOne({ _id: emailExist._id }, { $set: { status: true } })
+            const employee = new EmployeesModel({
+                name: emailExistInTemp.name,
+                email: emailExistInTemp.email,
+                password: emailExistInTemp.password,
+                status: true
+            });
+            const saveEmployee = await employee.save();
+
+            await TempEmployeesModel.deleteOne({ _id: emailExistInTemp._id })
             res.json({ message: "Email verified successfully", status: 1 });
         }
     } catch (error) {
@@ -207,15 +248,20 @@ const verifyEmail = async (req, res) => {
 
 const sendVerificationEmail = async (req, res) => {
     try {
+        const emailExistTemp = await TempEmployeesModel.findOne({ email: req.body.email });
         const emailExist = await EmployeesModel.findOne({ email: req.body.email });
-        if (!emailExist) {
+        if (!emailExistTemp) {
             res.json({ message: "Invalid user is trying to verify email", status: 0 });
         } else if (emailExist && emailExist.status === true) {
             res.json({ message: "This email verification is already done", status: 0 });
         } else {
-            const verify_email = process.env.WEBSITE_LINK + 'accountActivation?check=' + req.body.email
+            const token = jwt.sign({
+                exp: Math.floor(Date.now() / 1000) + (1 * 60),
+                data: req.body.email
+            }, 'secretKey');
+            const verify_email = process.env.WEBSITE_LINK + 'accountActivation?token='+token+'&check=' + req.body.email
 
-            let emailTemplate = verifyEmailTemplate({ verify_email: verify_email, name: emailExist.name })
+            let emailTemplate = verifyEmailTemplate({ verify_email: verify_email, name: emailExistTemp.name })
 
             let mail_sent = await sendMail({
                 to_email: req.body.email,
@@ -254,8 +300,15 @@ const signUp = async (req, res) => {
             }
             res.json(response)
         } else {
+            const emailExistTemp = await TempEmployeesModel.findOne({ email: req.body.email });
             const emailExist = await EmployeesModel.findOne({ email: req.body.email });
-            if (emailExist) {
+            if (emailExistTemp) {
+                const response = {
+                    message: "This email is already registered but verification is pending",
+                    status: 0,
+                }
+                res.json(response)
+            }else if (emailExist) {
                 const response = {
                     message: "Email already exist",
                     status: 0,
@@ -265,14 +318,17 @@ const signUp = async (req, res) => {
                 const salt = await bcrypt.genSalt(Number(process.env.SALT));
                 const hashPassword = await bcrypt.hash(req.body.password, salt);
 
-                const employee = new EmployeesModel({
+                const employee = new TempEmployeesModel({
                     name: req.body.name,
                     email: req.body.email,
                     password: hashPassword,
                     status: false
                 });
-
-                const verify_email = process.env.WEBSITE_LINK + 'accountActivation?check=' + req.body.email
+                const token = jwt.sign({
+                    exp: Math.floor(Date.now() / 1000) + (1 * 60),
+                    data: req.body.email
+                }, 'secretKey');
+                const verify_email = process.env.WEBSITE_LINK + 'accountActivation?token='+token+'&check=' + req.body.email
 
                 let emailTemplate = verifyEmailTemplate({ verify_email: verify_email, name: req.body.name })
 
@@ -309,7 +365,9 @@ const checkEmpty = (data) => {
         return { status: 0, message: 'Please enter valid name' }
     } else if ('email' in data === false || data.email.length < 13 || data.email.includes('\t') || data.email.includes(' ') || data.email.includes('konverge.ai') === false) {
         return { status: 0, message: 'Please enter valid email' }
-    } else if ('password' in data === false || passwordRegex.test(data.password) === false || data.password.length <= 0 || data.password.length > 8) {
+    } else if ('password' in data === false 
+    //|| passwordRegex.test(data.password) === false 
+    || data.password.length <= 0 || data.password.length > 8) {
         return { status: 0, message: 'Please enter valid password' }
     } else if ('confirm_password' in data === false || data.password != data.confirm_password) {
         return { status: 0, message: 'Password and confirm password should be same' }
@@ -329,5 +387,6 @@ module.exports = {
     checkResetPasswordRequest,
     verifyEmail,
     sendVerificationEmail,
-    getRecord
+    getRecord,
+    verifyToken
 }
