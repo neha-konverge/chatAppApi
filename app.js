@@ -7,6 +7,21 @@ const app = express();
 const db = process.env.DB_CONNECT;
 const port = 8000;
 //  'mongodb://localhost:27017/chatApiDb' process.env.PORT || 
+
+const { Server } = require("socket.io");
+const io = new Server(db);
+
+
+app.get('/getchat', (req, res) => {
+    res.sendFile(__dirname + '/chat.html');
+  });
+  
+  io.on('connection', (socket) => {
+    socket.on('chat message', msg => {
+      io.emit('chat message', msg);
+    });
+  });
+
 dotenv.config();
 app.use(express.json())
 mongoose.connect(
