@@ -2,15 +2,15 @@ const mongoose = require("mongoose");
 const jwt = require("jsonwebtoken");
 
 const employeesSchema = new mongoose.Schema({
+    _id:{type:mongoose.Schema.Types.ObjectId},
     name: String,
     email: String,
     password: String,
     mobile: String,
     designation: String,
+    avtar:{type:String, default:'https://png.pngtree.com/png-clipart/20210915/ourmid/pngtree-user-avatar-login-interface-abstract-blue-icon-png-image_3917504.jpg'},
     status: Boolean,
     created: String,
-    code:String,
-    expireIn:Date,
     createdAt:Date
 });
 
