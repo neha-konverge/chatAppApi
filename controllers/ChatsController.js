@@ -8,7 +8,7 @@ const allEmployees = async (req, res) => {
         const userData = await EmployeesModel.find({'email': {$ne: req.body.email }, status: true});        
         res.send({status:1,users:userData,message:"Returned employees list"});
     } catch (error) {
-        res.json({ messege: error.toString() })
+        res.json({ messege: error.toString()})
     }
 }
 
@@ -32,7 +32,49 @@ const checkAlreadyInvited = async(req,res) => {
             res.send({status:0,message:"Post parameters missing"})
         }
     }catch(error){
-        res.send({ message: error.toString() })
+        res.send({ message: error.toString()})
+    }
+}
+
+const accessChats = async(req,res) => {
+    try{
+        const {sender_id,reciever_id} = req.body
+        if(sender_id && reciever_id){
+            let chatExist = await ChatModel.find({
+                isGroupChat:false,
+                $and:[
+                    { "employees._id":sender_id},
+                    { "employees._id":reciever_id},
+                ]
+            }).populate("employees","-password").populate("latestMessage")
+            
+            chatExist = await EmployeesModel.populate(chatExist,{
+                path:"latestMessage.sender_id",
+                select:"name email avtar"
+            })
+            if(chatExist.length>0){
+                res.send(chatExist)
+            }else{
+                const newChat = {
+                    emp_name:"sender",
+                    isGroupChat:false,
+                    employees:[sender_id,reciever_id]
+                }
+                console.log(newChat)
+                
+                try{
+                    const chatCreated = await ChatModel.create(newChat)
+                    const fullChat = await ChatModel.findOne({_id:chatCreated}).populate("employees","-password")
+                    res.send({status:1,fullChat:fullChat,message:"Chat messages"})
+                }catch(error){
+                    res.send({ message: error.toString()})
+                }
+            }
+        }else{
+            res.send({status:0,message:"Post parameters missing"})
+        }
+    }catch(error){
+        res.send({ message: error.toString()})
     }
 }
 
@@ -48,38 +90,40 @@ const sendAnInvite = async(req,res) => {
                     ],
                 }],$and:[{is_invite:true}]})
             if(!check){
-                const newMsg = {
+                let newMsg = {
                     sender_id:sender_id,
                     reciever_id:reciever_id,
                     message:message ,
                     chat_id:chat_id
                 }
-                const msgSave = await MessageModel.create(newMsg)
-                const senderInfo = await msgSave.populate("sender_id","name email")
-                const chatInfo = await msgSave.populate("chat_id")
-                res.send(chatInfo)
+                newMsg = await MessageModel.create(newMsg)
+                newMsg = await newMsg.populate("sender_id","name avtar")
+                newMsg = await newMsg.populate("chat_id")
+                newMsg = await EmployeesModel.populate(newMsg,{
+                    path:"chat.employees",
+                    select:"name avtar" 
+                })
+
+                await ChatModel.findByIdAndUpdate(chat_id,{
+                    latestMessage:message,
+                })
+                res.send(newMsg)
             }else{
-                // const employee = new EmployeesModel({
-                //     name: emailExistInTemp.name,
-                //     email: emailExistInTemp.email,
-                //     password: emailExistInTemp.password,
-                //     status: true
-                // });
-                // const saveEmployee = await employee.save();
-                // res.send({status:2,message:"Send an invite"})
+                res.send({status:0,message:"First need to invite an user"})
             }
         }else{
             res.send({status:0,message:"Post parameters missing"})
         }
     }catch(error){
-        res.send({ message: error.toString() })
+        res.send({ message: error.toString()})
     }
 }
 
 module.exports = {
     allEmployees,
     checkAlreadyInvited,
-    sendAnInvite
+    sendAnInvite,
+    accessChats
 }
 
 // > db.employees.find( {"$or":[ {"$and": [{"name": "neha"}, {"status": true}] }, {"name" : "diksha" } ] } );
