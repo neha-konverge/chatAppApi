@@ -155,7 +155,9 @@ const resetPassword = async (req, res) => {
             res.send({ status: 0, message: 'This email is already registered but verification is pending' })
         }else if (!user || bcrypt.compare(user.email, req.body.hash) === false) {
             res.send({ status: 0, message: 'Invalid user is trying to reset password' })
-        } else if ('password' in req.body === false || passwordRegex.test(req.body.password) === false || req.body.password.length <= 0 || req.body.password.length > 8) {
+        } else if ('password' in req.body === false 
+        //|| passwordRegex.test(req.body.password) === false 
+        || req.body.password.length <= 0 || req.body.password.length > 8) {
             res.send({ status: 0, message: 'Please enter valid password' })
         } else if ('confirm_password' in req.body === false || req.body.password != req.body.confirm_password) {
             res.send({ status: 0, message: 'Password and confirm password should be same' })
@@ -363,7 +365,9 @@ const checkEmpty = (data) => {
         return { status: 0, message: 'Please enter valid name' }
     } else if ('email' in data === false || data.email.length < 13 || data.email.includes('\t') || data.email.includes(' ') || data.email.includes('konverge.ai') === false) {
         return { status: 0, message: 'Please enter valid email' }
-    } else if ('password' in data === false || passwordRegex.test(data.password) === false || data.password.length <= 0 || data.password.length > 8) {
+    } else if ('password' in data === false 
+    //|| passwordRegex.test(data.password) === false 
+    || data.password.length <= 0 || data.password.length > 8) {
         return { status: 0, message: 'Please enter valid password' }
     } else if ('confirm_password' in data === false || data.password != data.confirm_password) {
         return { status: 0, message: 'Password and confirm password should be same' }
