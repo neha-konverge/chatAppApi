@@ -2,7 +2,6 @@ const mongoose = require("mongoose");
 const jwt = require("jsonwebtoken");
 
 const employeesSchema = new mongoose.Schema({
-    _id:{type:mongoose.Schema.Types.ObjectId},
     name: String,
     email: String,
     password: String,
@@ -12,6 +11,8 @@ const employeesSchema = new mongoose.Schema({
     status: Boolean,
     created: String,
     createdAt:Date
+},{
+    timestamps:true
 });
 
 employeesSchema.methods.generateAuthToken = function () {
