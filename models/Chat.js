@@ -1,21 +1,30 @@
 const mongoose = require("mongoose");
 
 const chatSchema = new mongoose.Schema({
-    emp_name:{type:String, trim:true},
+    empName:{type:String, trim:true},
+    sender_id:{
+        type:mongoose.Schema.Types.ObjectId,
+        ref:"employees"
+    },
+    reciever_id:{
+        type:mongoose.Schema.Types.ObjectId,
+        ref:"employees"
+    },
     isGroupChat:{type:Boolean, default:false},
     employees:{
         type:mongoose.Schema.Types.ObjectId,
-        ref:"Employees"
+        ref:"employees"
     },
     latestMessage:{
         type:mongoose.Schema.Types.ObjectId,
-        ref:"Messsages"
+        ref:"messages"
     },
     groupAdmin:{
         type:mongoose.Schema.Types.ObjectId,
-        ref:"Employees"
+        ref:"employees"
     },
-    is_invite:{type:Boolean,default:false}
+    isInvite:{type:Boolean,default:false},
+    inviteStatus:{type:String,default:"pending"}
 },{
     timestamps:true
 });

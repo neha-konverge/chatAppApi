@@ -3,6 +3,9 @@ const messagesSchema = new mongoose.Schema({
     sender_id:{
         type:mongoose.Schema.Types.ObjectId,
         ref:"employees"
+    },reciever_id:{
+        type:mongoose.Schema.Types.ObjectId,
+        ref:"employees"
     },message:{type:String, trim:true},
     chat_id:{
         type:mongoose.Schema.Types.ObjectId,

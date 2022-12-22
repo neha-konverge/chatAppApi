@@ -33,19 +33,18 @@ mongoose.connect(
     (res) => console.log(res)
 )
 
-ngrok.connect({
-    proto: "http",
-    addr: port,
-})
-    .then(url => {
-        console.log(`ngrok tunnel opened at: ${url}`);
-        console.log("Open the ngrok dashboard at: https://localhost:"+port+"\n");
+// ngrok.connect({
+//     proto: "http",
+//     addr: port,
+// }).then(url => {
+//     console.log(`ngrok tunnel opened at: ${url}`);
+//     console.log("Open the ngrok dashboard at: https://localhost:"+port+"\n");
 
-        nodemon({
-            script: "./bin/www",
-            exec: `NGROK_URL=${url} node`,
-        });
-    })
+//     nodemon({
+//         script: "./bin/www",
+//         exec: `NGROK_URL=${url} node`,
+//     });
+// })
 
 //import routes
 const employeeRoutes = require("./routes/employeeRoute")
