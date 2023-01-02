@@ -7,6 +7,8 @@ const tempEmployeesSchema = new mongoose.Schema({
     password: String,
     status: Boolean,
     createdAt:Date
+},{
+    timestamps:true
 });
 
 module.exports = mongoose.model("temp_employees",tempEmployeesSchema) 

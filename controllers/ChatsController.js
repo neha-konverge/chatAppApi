@@ -18,16 +18,16 @@ const checkAlreadyInvited = async(req,res) => {
     try{
         if(req.body.sender_id && req.body.reciever_id){
             const check = await ChatModel.findOne({
-                $or:[{
-                    $and:[
-                        {sender_id:req.body.sender_id,reciever_id:req.body.reciever_id},
-                        {sender_id:req.body.reciever_id,reciever_id:req.body.sender_id}
-                    ],
-                }],$and:[{is_invite:true}]})
-            if(check && check.inviteStatus === 'pending'){
-                res.send({status:1,message:"Already invited"})
+                $or:[{sender_id:req.body.sender_id,reciever_id:req.body.reciever_id}
+                    ,{sender_id:req.body.reciever_id,reciever_id:req.body.sender_id}
+                ]
+                ,$and:[{is_invite:true}]})
+            if(check && check.inviteStatus === 'accepted'){
+                res.json({status:1,invitedData:check,message:"Invitation accepted"})
+            }else if(check && check.inviteStatus === 'pending'){
+                res.json({status:3,invitedData:check,message:"Already invited"})
             }else{
-                res.send({status:2,message:"Send an invite"})
+                res.json({status:2,message:"Send an invite"})
             }
             
         }else{
@@ -40,14 +40,52 @@ const checkAlreadyInvited = async(req,res) => {
 const accessChatUsers = async(req,res) => {
     try{
         const {sender_id,reciever_id} = req.body
-        if(sender_id && reciever_id){
-            let chatExist = await ChatModel.find({$query:{
-                isGroupChat:false,sender_id:sender_id
-            }}).populate("reciever_id",'-password,-__v').populate("latestMessage",'message updatedAt').sort({ updatedAt : -1 })
+        if(sender_id){
+            
+            let chatExist = await ChatModel.find({
+                isGroupChat:false,
+                $or:[{sender_id:sender_id},{reciever_id:sender_id}]
+            },{employees:0}).populate("sender_id",'-password,-__v').populate("reciever_id",'-password,-__v').populate("latestMessage",'message updatedAt').sort({ updatedAt : -1 })
+            let chatUsers = []
+            const userObj ={}
+            chatExist.map((row,i) => {
+                let userObj = {}
+                if(sender_id === row.reciever_id._id.toString()){
+                    userObj = {
+                        sender_id:row.sender_id._id.toString(),
+                        reciever_id:row.reciever_id._id.toString(),
+                        user_id:row.sender_id._id,
+                        name:row.sender_id.name,
+                        email:row.sender_id.email,
+                        avtar:row.sender_id.avtar,
+                        isGroupChat:row.isGroupChat,
+                        latestMessage:row.latestMessage,
+                        isInvite:row.isInvite,
+                        inviteStatus:row.inviteStatus,
+                        updatedAt:row.updatedAt,
+                    }
+                }else{
+                    userObj = {
+                        sender_id:row.sender_id._id.toString(),
+                        reciever_id:row.reciever_id._id.toString(),
+                        user_id:row.reciever_id._id,
+                        name:row.reciever_id.name,
+                        email:row.reciever_id.email,
+                        avtar:row.reciever_id.avtar,
+                        isGroupChat:row.isGroupChat,
+                        latestMessage:row.latestMessage,
+                        isInvite:row.isInvite,
+                        inviteStatus:row.inviteStatus,
+                        updatedAt:row.updatedAt,
+                    }
+                }
+                chatUsers.push(userObj)
+            })
+
             if(chatExist.length>0){
-                res.send({status:1,messages:chatExist,message:"Chat messages list returned"})
+                res.send({status:1,chatUsers:chatUsers,message:"Chat messages list returned"})
             }else{
-                res.send({status:1,messages:[],message:"No chat messages found"})
+                res.send({status:1,chatUsers:[],message:"No chat messages found"})
             }
         }else{
             res.send({status:0,message:"Post parameters missing"})
@@ -57,38 +95,18 @@ const accessChatUsers = async(req,res) => {
     }
 }
 
-const accessChats = async(req,res) => {
+const accessChatMessages = async(req,res) => {
     try{
-        const {sender_id,reciever_id} = req.body
-        if(sender_id && reciever_id){
-            let chatExist = await ChatModel.find({
-                isGroupChat:false,sender_id:sender_id,reciever_id:reciever_id
-                // $and:[
-                //     { "employees._id":sender_id},
-                //     { "employees._id":reciever_id},
-                // ]
-            })//.populate("employees","-password").populate("latestMessage")
-            chatExist = await EmployeesModel.populate(chatExist,{
-                path:"latestMessage.sender_id",
-                select:"name email avtar"
+        const {sender_id,reciever_id,chat_id} = req.body
+        if(sender_id && reciever_id && chat_id){
+            let chatMessages = await MessageModel.find({
+                chat_id:chat_id,
             })
-            if(chatExist.length>0){
-                res.send({status:1,chatUsers:chatExist,message:"Chat messages list returned"})
+            
+            if(chatMessages.length>0){
+                res.send({status:1,chatMessages:chatMessages,message:"Chat messages list returned"})
             }else{
                 res.send({status:1,chatUsers:[],message:"No chat messages found"})
-                // const newChat = {
-                //     emp_name:"sender",
-                //     isGroupChat:false,
-                //     employees:[sender_id],
-                //     is_invite:true
-                // }
-                // try{
-                //     const chatCreated = await ChatModel.create(newChat)
-                //     const fullChat = await ChatModel.findOne({_id:chatCreated._id}).populate("employees","-password")
-                //     res.send({status:1,fullChat:fullChat,message:"Chat messages"})
-                // }catch(error){
-                //     res.send({ message: error.toString()})
-                // }
             }
         }else{
             res.send({status:0,message:"Post parameters missing"})
@@ -102,17 +120,18 @@ const sendAnInvite = async(req,res) => {
     try{
         const {sender_id,reciever_id,message} = req.body
         if(sender_id && reciever_id){
-            const check = await ChatModel.findOne({$or:[{employees:reciever_id},{employees:sender_id}]})
+            const check = await ChatModel.findOne({
+                $or:[{sender_id:req.body.sender_id,reciever_id:req.body.reciever_id}
+                    ,{sender_id:req.body.reciever_id,reciever_id:req.body.sender_id}
+                ]
+                ,$and:[{is_invite:true}]})
             if(check === null || !check.length === 0){
-                // if(true){
-                console.log("check:success")
                 const newChat = {
                     emp_name:"sender",
                     sender_id:sender_id,
                     reciever_id:reciever_id,
                     isGroupChat:false,
                     employees:[reciever_id],
-                    // employees:[reciever_id],
                     isInvite:true,
                 }
                 try{
@@ -125,17 +144,6 @@ const sendAnInvite = async(req,res) => {
                         chat_id:chatCreated._id
                     }
                     newMsg = await MessageModel.create(newMsg)
-                    // newMsg = await newMsg.populate("sender_id","-password")
-                    // newMsg = await newMsg.populate("reciever_id","-password")
-                    // newMsg = await newMsg.populate("chat_id")
-                    // newMsg = await EmployeesModel.populate(newMsg,{
-                    //     path:"chat.employees",
-                    //     select:"name avtar" 
-                    // })
-                    // const fullChat = await ChatModel.findOne({_id:chatCreated._id}).populate("employees","-password").populate({
-                    //     newMsg,
-                    //     select:"message" 
-                    // })
                     await ChatModel.findByIdAndUpdate(chatCreated._id,{
                         latestMessage:newMsg._id
                     })
@@ -154,13 +162,39 @@ const sendAnInvite = async(req,res) => {
     }
 }
 
+const sendMessage = async(req,res) => {
+    try{
+        const {reciever_id,sender_id,chat_id,message} = req.body
+        if(sender_id && reciever_id && chat_id && message){
+            try{
+                let newMsg = {
+                    reciever_id:reciever_id,
+                    sender_id:sender_id,
+                    message:message ,
+                    chat_id:chat_id
+                }
+                newMsg = await MessageModel.create(newMsg)
+                await ChatModel.findByIdAndUpdate(chat_id,{
+                    latestMessage:newMsg._id
+                })
+                res.send({status:1,messageSent:newMsg,message:"Message sent"})
+            }catch(error){
+                res.send({ message: error.toString()})
+            }
+        }else{
+            res.send({status:0,message:"Post parameters missing"})
+        }
+    }catch(error){
+        res.send({ message: error.toString()})
+    }
+}
+
 const respondOnInvitation = async(req,res) => {
     try{
         const {sender_id,chat_id,status} = req.body
         if(sender_id && chat_id && status){
             const chatExist = await ChatModel.findOne({_id:chat_id},{"_id":1})
             const chatStatus = await ChatModel.findOne({'_id':chat_id,'inviteStatus':{$ne:'pending'}},{"_id":1})
-            console.log("chatStatus",chatStatus)
             if(chatExist){
                 if(!chatStatus){
                     if(status==='accepted'){
@@ -170,15 +204,12 @@ const respondOnInvitation = async(req,res) => {
                             chat_id:chat_id
                         }
                         newMsg = await MessageModel.create(newMsg)
-                        newMsg = await newMsg.populate("sender_id","name avtar")
-                        newMsg = await newMsg.populate("chat_id")
-                        newMsg = await EmployeesModel.populate(newMsg,{
-                            path:"chat.employees",
-                            select:"name avtar" 
-                        })
+                        
                         await ChatModel.findByIdAndUpdate(chat_id,{
                             latestMessage:newMsg._id,inviteStatus:"accepted"
                         })
+
+                        // const msgList = 
                         res.send({status:1,message:"Invitation accepted by user",data:newMsg})
                     }else{
                         await ChatModel.findOneAndDelete({_id:chat_id})
@@ -203,8 +234,9 @@ module.exports = {
     checkAlreadyInvited,
     sendAnInvite,
     respondOnInvitation,
-    accessChats,
-    accessChatUsers
+    accessChatMessages,
+    accessChatUsers,
+    sendMessage
 }
 
 // > db.employees.find( {"$or":[ {"$and": [{"name": "neha"}, {"status": true}] }, {"name" : "diksha" } ] } );

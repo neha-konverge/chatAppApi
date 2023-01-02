@@ -11,10 +11,11 @@ const chatSchema = new mongoose.Schema({
         ref:"employees"
     },
     isGroupChat:{type:Boolean, default:false},
-    employees:{
+    employees:[{
         type:mongoose.Schema.Types.ObjectId,
-        ref:"employees"
-    },
+        ref:"employees",
+        // value:[],type:String
+    }],
     latestMessage:{
         type:mongoose.Schema.Types.ObjectId,
         ref:"messages"
