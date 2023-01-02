@@ -52,7 +52,7 @@ const verifyEmailTemplate = (params) => {
             Please click on below button to verify your email and activate account
         </p>
         <button class="btn"> 
-        <a class="link" href=${params.verify_email}>Click here</a>
+        <a class="link" href=${params.verify_email}>Verify Email</a>
         </button>
         <p>If you didn’t make this request, ignore this email.</p>
         </body>

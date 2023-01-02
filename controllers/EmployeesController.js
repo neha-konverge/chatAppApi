@@ -58,11 +58,11 @@ const forgotPassword = async (req, res) => {
                 const hashPassword = await bcrypt.hash(req.body.email.toString(), 10);
                 let userDetails = {
                     status: 1,
-                    message: "Reset password link has been sent to you email",
+                    message: "Reset password link has been sent to your registered email",
                 }
                 try {
                     const token = jwt.sign({
-                        exp: Math.floor(Date.now() / 1000) + (1 * 60),
+                        exp: Math.floor(Date.now() / 1000) + (10 * 60),
                         data: req.body.email
                     }, 'secretKey');
 
@@ -225,10 +225,10 @@ const verifyEmail = async (req, res) => {
         //     process.env.WEBSITE_LINK + 'accountActivation?token='+token+'&check=' + req.body.email
         //     res.json({ message: "This link has been expired. To verify your email<a href>click here</a>", status: 0 });
         // }else 
-        if (!emailExistInTemp) {
-            res.json({ message: "Invalid user is trying to verify email", status: 0 });
-        } else if (emailExist) {
+        if (!emailExistInTemp && emailExist && emailExist.status === true) {
             res.json({ message: "This email verification is already done", status: 0 });
+        } else if (!emailExistInTemp) {
+            res.json({ message: "Invalid user is trying to verify email", status: 0 });
         } else {
             const employee = new EmployeesModel({
                 name: emailExistInTemp.name,
@@ -250,13 +250,13 @@ const sendVerificationEmail = async (req, res) => {
     try {
         const emailExistTemp = await TempEmployeesModel.findOne({ email: req.body.email });
         const emailExist = await EmployeesModel.findOne({ email: req.body.email });
-        if (!emailExistTemp) {
-            res.json({ message: "Invalid user is trying to verify email", status: 0 });
-        } else if (emailExist && emailExist.status === true) {
+        if (!emailExistTemp && emailExist && emailExist.status === true) {
             res.json({ message: "This email verification is already done", status: 0 });
+        }else if (!emailExistTemp) {
+            res.json({ message: "Invalid user is trying to verify email", status: 0 });
         } else {
             const token = jwt.sign({
-                exp: Math.floor(Date.now() / 1000) + (1 * 60),
+                exp: Math.floor(Date.now() / 1000) + (10 * 60),
                 data: req.body.email
             }, 'secretKey');
             const verify_email = process.env.WEBSITE_LINK + 'accountActivation?token='+token+'&check=' + req.body.email
@@ -273,7 +273,7 @@ const sendVerificationEmail = async (req, res) => {
             if (mail_sent) {
 
                 const response = {
-                    message: 'Email verification mail has been sent to your email',
+                    message: 'Email activation mail has been sent to your registered email',
                     status: 1,
                 }
                 res.json(response)
@@ -325,7 +325,7 @@ const signUp = async (req, res) => {
                     status: false
                 });
                 const token = jwt.sign({
-                    exp: Math.floor(Date.now() / 1000) + (1 * 60),
+                    exp: Math.floor(Date.now() / 1000) + (10 * 60),
                     data: req.body.email
                 }, 'secretKey');
                 const verify_email = process.env.WEBSITE_LINK + 'accountActivation?token='+token+'&check=' + req.body.email
@@ -342,7 +342,7 @@ const signUp = async (req, res) => {
                 if (mail_sent) {
                     const saveEmployee = await employee.save();
                     const response = {
-                        message: 'Email verification mail has been sent to your email',
+                        message: 'Email verification mail has been sent to your registered email',
                         status: 1,
                     }
                     res.json(response)
