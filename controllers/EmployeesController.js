@@ -342,7 +342,7 @@ const signUp = async (req, res) => {
                 if (mail_sent) {
                     const saveEmployee = await employee.save();
                     const response = {
-                        message: 'Email verification mail has been sent to your registered email',
+                        message: 'Registration successfull! Email verification link has been sent to your registered email id',
                         status: 1,
                     }
                     res.json(response)
