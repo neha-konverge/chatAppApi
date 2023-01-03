@@ -23,6 +23,9 @@ const chatSchema = new mongoose.Schema({
     groupAdmin:{
         type:mongoose.Schema.Types.ObjectId,
         ref:"employees"
+    },group:{
+        type:mongoose.Schema.Types.ObjectId,
+        ref:"groups"
     },
     isInvite:{type:Boolean,default:false},
     inviteStatus:{type:String,default:"pending"}

@@ -2,25 +2,27 @@ const express = require('express')
 const dotenv = require('dotenv')
 const mongoose = require('mongoose')
 const ngrok = require("ngrok");
+const port = 8000;
 const nodemon = require("nodemon");
+const socketIo = require("socket.io")(8080)
 const app = express();
 const db = process.env.DB_CONNECT;
-const port = 8000;
 //  'mongodb://localhost:27017/chatApiDb' process.env.PORT || 
 
-const { Server } = require("socket.io");
-const io = new Server(db);
+// const { Server } = require("socket.io");
+// const io = new Server(db);
 
 
 app.get('/getchat', (req, res) => {
-    res.sendFile(__dirname + '/chat.html');
-  });
+    res.sendFile(__dirname + '/index.html');
+});
   
-  io.on('connection', (socket) => {
-    socket.on('chat message', msg => {
-      io.emit('chat message', msg);
-    });
+socketIo.on('connection', (socket) => {
+  socket.on('user-joined', msg => {
+    console.log("new msg",msg)
+    socketIo.emit('chat message', msg);
   });
+});
 
 dotenv.config();
 app.use(express.json())
@@ -53,6 +55,6 @@ const chatRoutes = require("./routes/chatRoute")
 app.use("/api/user", employeeRoutes)
 app.use("/api/chat", chatRoutes)
 
-app.listen(8000, () => {
-    console.log("server up and running on port ", 8000);
+app.listen(port, () => {
+    console.log("server up and running on port ", port);
 })
