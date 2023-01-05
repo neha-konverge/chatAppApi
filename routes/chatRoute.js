@@ -7,5 +7,7 @@ router.post("/accessChatMessages",ChatsController.accessChatMessages)
 router.post("/sendAnInvite",ChatsController.sendAnInvite)
 router.post("/sendMessage",ChatsController.sendMessage)
 router.post("/accessChatUsers",ChatsController.accessChatUsers)
+router.post("/sendImage",ChatsController.sendImage)
+
 
 module.exports = router

@@ -72,13 +72,13 @@ const forgotPassword = async (req, res) => {
                         host: "smtp.gmail.com",
                         port: 587,
                         auth: {
-                            user: "prattyancha26@gmail.com",
-                            pass: "kywxwinhygabkajr"
+                            user: "neha.sawarkar@konverge.ai",
+                            pass: "tqergahgislirriy"
                         }
                     });
 
                     const mailOptions = {
-                        from: 'prattyancha.patharkar@konverge.ai',
+                        from: 'konchat@konverge.ai',
                         to: `${checkExist.email}`,
                         subject: 'Reset Your KonChat password',
                         html: `

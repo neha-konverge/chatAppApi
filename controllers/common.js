@@ -6,8 +6,8 @@ const sendMail = (params) => {
             host: "smtp.gmail.com",
             port: 587,
             auth: {
-                user: "prattyancha26@gmail.com",
-                pass: "kywxwinhygabkajr"
+                user: "neha.sawarkar@konverge.ai",
+                pass: "tqergahgislirriy"
             }
         });
         const mailOptions = {
